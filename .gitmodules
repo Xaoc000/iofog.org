@@ -4,3 +4,6 @@
 [submodule "third_party/FogController"]
 	path = third_party/FogController
 	url = git@github.com:ioFog/FogController.git
+[submodule "moving-average/iofog-java-sdk"]
+	path = moving-average/iofog-java-sdk
+	url = git@github.com:ioFog/iofog-java-sdk.git

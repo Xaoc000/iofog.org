@@ -13,7 +13,13 @@ With our Docker image from the previous step in hand, it's time to publish it to
 
 While you can use a custom registry (or the public [Docker Hub](https://hub.docker.com/)), the Controller also comes with a built-in private registry that represents the local cache on the ioFog edge compute nodes.
 
-To get a list of the container registries, we can use `registry list`:
+Open up a bash session into our iofog-controller container:
+
+```sh
+docker exec -ti iofog-controller bash
+```
+
+Now to get a list of the container registries, we can use `registry list`:
 
 ```sh
 iofog-controller registry list
@@ -45,6 +51,7 @@ Now that we have that registry ID, we can use it to add our Docker image to its 
 iofog-controller catalog add \
   --name "Moving Average" \
   --x86-image yourname/moving-average:v1 \
+  --arm-image yourname/moving-average:v1 \
   --registry-id 2 \
   --user-id 1
 ```
@@ -56,10 +63,10 @@ Now that the Docker image containing our microservice code is registered, we can
 
 Instantiating a new microservice is done using the `microservice add` command. We need to provide several options, the most notable being the catalog ID we received in the previous section as well as a node ID—which is the ID of the edge node we want this microservice to run on.
 
-So let's find the ID for the first Agent with the name "Agent 1":
+So let's find the `"uuid"` field for the first Agent with the name "Agent 1":
 
 ```sh
-iofog-controller node list
+iofog-controller iofog list
 ```
 
 Using that ID, we can pass it and our other arguments to instantiate the microservice:
@@ -67,10 +74,11 @@ Using that ID, we can pass it and our other arguments to instantiate the microse
 ```sh
 iofog-controller microservice add \
   --name "Moving Average 1" \
-  --catalog-id <catalog_id> \
+  --catalog-id 16 \
   --config '{ "maxWindowSize": 10 }' \
-  --node-id <node_id> \
-  --flow-id 1
+  --iofog-id zYr9DZCMhwTrxmFgkbTH9rZqnpgvxbNj \
+  --flow-id 1 \
+  --user-id 1
 ```
 
 This is also a great opportunity to include our custom config for our `maxWindowSize`.
@@ -93,15 +101,25 @@ First, let's remove the old route from the Sensors to the REST API. We need to r
 iofog-controller microservice list
 ```
 
-After finding those two IDs in the list, provide the Sensors ID to `--source-microservice-id` and the REST API's to `--dest-microservice-id`:
+After finding those two IDs in the list, provide them as the `route-remove --route` argument in the format `source:dest`, separated by a semi-colon with no spaces. In this case, the Sensor's ID is the source, and the REST API's ID is the destination.
 
 ```sh
-iofog-controller microservice route --remove \
-  --source-microservice-id <sensors_id>  \
-  --dest-microservice-id <rest_api_id>
+iofog-controller microservice route-remove \
+  --route <sensors_id>:<rest_api_id>
+```
+
+```sh
+iofog-controller microservice route-remove \
+  --route 2V3NyFFxM8WkNcnbWFvn38PFRJT2GqJg:gwzQJ4mcTTLyJgdLZJHkKmbQqJFpBDtq
 ```
 
 Now we need to place two new routes: one from the Sensors to Moving Average, and another from Moving Average to the REST API; this places our new microservice in between them.
+
+iofog-controller microservice route-create \
+  --route 2V3NyFFxM8WkNcnbWFvn38PFRJT2GqJg:H8Fg3f38qVn4ZyF2dFYwVCJb9j8RpfJz
+
+iofog-controller microservice route-create \
+  --route H8Fg3f38qVn4ZyF2dFYwVCJb9j8RpfJz:gwzQJ4mcTTLyJgdLZJHkKmbQqJFpBDtq
 
 ```sh
 # Sensors -> Moving Average

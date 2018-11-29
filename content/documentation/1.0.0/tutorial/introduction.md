@@ -8,6 +8,8 @@ version: "1.0.0"
 # Introduction
 In this tutorial, we'll cover how to create, deploy, and manage your first microservices using ioFog.
 
+While your production environment will need to be setup separately, this tutorial provides a complete ioFog environment for demonstration purposes.
+
 <aside class="notifications note">
   <h3><img src="/images/icos/ico-note.svg" alt=""> Familiar with the Core Concepts?</h3>
   <p>If you aren't already familiar with the core concepts of ioFog, you'll want to check out <a href="core-concepts">our Core Concepts</a> section.</p>
