@@ -1,8 +1,6 @@
 ---
 title: "Core Concepts"
 category: "Getting Started"
-type: "documentation"
-version: "1.0.0"
 ---
 
 <aside class="notifications note">

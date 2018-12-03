@@ -1,9 +1,11 @@
 const path = require("path");
+const util = require("util");
 const _ = require("lodash");
 const moment = require("moment");
 const { fmImagesToRelative } = require('gatsby-remark-relative-images');
 const siteConfig = require("./data/SiteConfig");
 
+/*
 const postNodes = [];
 
 function addSiblingNodes(createNodeField) {
@@ -47,7 +49,8 @@ function addSiblingNodes(createNodeField) {
     });
   }
 }
-
+*/
+/*
 exports.onCreateNode = ({ node, actions, getNode }) => {
   fmImagesToRelative(node);
   const { createNodeField } = actions;
@@ -55,12 +58,7 @@ exports.onCreateNode = ({ node, actions, getNode }) => {
   if (node.internal.type === "MarkdownRemark") {
     const fileNode = getNode(node.parent);
     const parsedFilePath = path.parse(fileNode.relativePath);
-    if (
-      Object.prototype.hasOwnProperty.call(node, "frontmatter") &&
-      Object.prototype.hasOwnProperty.call(node.frontmatter, "title")
-    ) {
-      slug = `/${_.kebabCase(node.frontmatter.title)}`;
-    } else if (parsedFilePath.name !== "index" && parsedFilePath.dir !== "") {
+    if (parsedFilePath.name !== "index" && parsedFilePath.dir !== "") {
       slug = `/${parsedFilePath.dir}/${parsedFilePath.name}/`;
     } else if (parsedFilePath.dir === "") {
       slug = `/${parsedFilePath.name}/`;
@@ -87,7 +85,44 @@ exports.onCreateNode = ({ node, actions, getNode }) => {
     postNodes.push(node);
   }
 };
+*/
 
+const { createFilePath } = require('gatsby-source-filesystem')
+exports.onCreateNode = ({ node, actions, getNode }) => {
+  const { createNodeField } = actions
+  //console.log('node.internal.type', node.internal.type);
+  console.log(node);
+  switch (node.internal.type) {
+    case 'ConfigJson':
+      const fileNode = getNode(node.parent)
+      createNodeField({
+        name: 'path',
+        node,
+        value: `/${fileNode.relativeDirectory}/`,
+      });
+      break;
+
+    case 'MarkdownRemark': {
+      const { relativePath } = getNode(node.parent);
+      const value = createFilePath({ node, getNode });
+      createNodeField({
+        node,
+        name: 'slug',
+        value: `/${relativePath.replace('.md', '.html')}`,
+      });
+      /* const value = createFilePath({ node, getNode })
+      createNodeField({
+        name: `slug`,
+        node,
+        value,
+      }); */
+    }
+
+    default:
+  }
+};
+
+/*
 exports.setFieldsOnGraphQLNodeType = ({ type, actions }) => {
   const { name } = type;
   const { createNodeField } = actions;
@@ -95,12 +130,13 @@ exports.setFieldsOnGraphQLNodeType = ({ type, actions }) => {
     addSiblingNodes(createNodeField);
   }
 };
+*/
 
 exports.createPages = ({ graphql, actions }) => {
   const { createPage } = actions;
 
   return new Promise((resolve, reject) => {
-    const postPage = path.resolve("src/templates/post.jsx");
+    const docsPage = path.resolve("src/templates/post.jsx");
     resolve(
       graphql(
         `
@@ -113,6 +149,8 @@ exports.createPages = ({ graphql, actions }) => {
                   }
                   excerpt
                   timeToRead
+                  id
+                  fileAbsolutePath
                   frontmatter {
                     type,
                     version
@@ -123,31 +161,26 @@ exports.createPages = ({ graphql, actions }) => {
           }
         `
       ).then(result => {
+        //console.log(util.inspect(result, false, null, true))
         if (result.errors) {
-          /* eslint no-console: "off" */
+          // eslint no-console: "off"
           console.log(result.errors);
           reject(result.errors);
         }
 
         result.data.allMarkdownRemark.edges.forEach(edge => {
-          const { version, type } = edge.node.frontmatter;
           const { slug } = edge.node.fields;
-
-          let articlePath = `${type}${slug}`;
-
-          if (version) {
-            articlePath = `${type}/${version}${slug}`;
-          }
-
-          createPage({
-            path: articlePath,
-            component: postPage,
+          //const parts = path.parse(edge.node.fileAbsolutePath);
+          //const postPath = path.relative('./content', `${parts.dir}/${parts.name}`);
+          //console.log({postPath});
+          const obj = {
+            path: slug,
+            component: docsPage,
             context: {
-              slug,
-              type,
-              version
+              slug
             }
-          });
+          };
+          createPage(obj);
         });
       })
     );

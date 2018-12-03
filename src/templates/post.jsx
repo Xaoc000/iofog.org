@@ -6,9 +6,10 @@ import SEO from '../components/SEO/SEO';
 import config from '../../data/SiteConfig';
 import './b16-tomorrow-dark.css';
 import './post.scss';
-import PostListing from '../components/PostListing/PostListing';
+import DocsSidebar from '../components/DocsSidebar/DocsSidebar';
 import Edgeworx from "../components/Egdeworx/Edgeworx";
 import swaggerSpec from '../../third_party/FogController/specs/swagger.yml';
+import './swagger-ui';
 
 export default class PostTemplate extends React.Component {
   postRef = React.createRef();
@@ -16,49 +17,45 @@ export default class PostTemplate extends React.Component {
   async componentDidMount() {
     const swaggerEl = this.postRef.current.querySelector('swagger-ui');
 
-    if (swaggerEl) {
+    /* if (swaggerEl) {
       // swagger-ui doesn't work in SSR. In fact if you even
       // import it server-side it throws errors.
       const [{ default: SwaggerUI }, _] = await Promise.all([
         import('swagger-ui'),
         import('swagger-ui/dist/swagger-ui.css')
       ]);
-
       SwaggerUI({
         domNode: swaggerEl,
         //url: 'https://petstore.swagger.io/v2/swagger.json'
-        spec: swaggerSpec
-      })
-    }
+        //spec: swaggerSpec
+        url: `https://unpkg.com/iofogcontroller@${}/specs/swagger.yml`
+      });
+    } */
   }
 
   render() {
     const { pageContext, data } = this.props;
-    const { slug, type, version } = pageContext;
-
-    let activeLink = `/${type}${slug}`;
-
-    if (version) {
-      activeLink = `/${type}/${version}${slug}`;
-    }
-
+    console.log('props', this.props);
+    const { slug } = pageContext;
     const postNode = data.markdownRemark;
-    const sidebarMenu = data[type];
     const post = postNode.frontmatter;
+    const versions = data.allConfigJson.edges
+      .slice()
+      .sort((a, b) => {
+        return b.node.version.localeCompare(a.node.version);
+      });
 
     return (
-      <Layout location={type}>
+      <Layout location="/test">
         <Helmet>
           <title>{`${post.title} | ${post.category} | ${config.siteTitle}`}</title>
         </Helmet>
-
         <SEO postPath={slug} postNode={postNode} postSEO />
-
         <div className="container-fluid">
           <div className="row post">
             <div className="menu-list col-12 col-lg-3">
               <div className="row">
-                <PostListing postEdges={sidebarMenu} activeLink={activeLink} />
+                <DocsSidebar versions={versions} activePath={slug} />
               </div>
             </div>
             <div className="post-container col-12 col-lg-9 bg-grey">
@@ -71,7 +68,6 @@ export default class PostTemplate extends React.Component {
             </div>
           </div>
         </div>
-
         <Edgeworx />
       </Layout>
     );
@@ -90,42 +86,25 @@ export const pageQuery = graphql`
         category
       }
       fields {
-        nextTitle
-        nextSlug
-        prevTitle
-        prevSlug
         slug
       }
     }
 
-    documentation: documentationJson {
-      type
-      versions {
-        version
-        title
-        menus {
-          title
-          subMenus {
+    allConfigJson {
+      edges {
+        node {
+          version
+          menus {
             title
-            entry {
-              ...menuEntry
+            subMenus {
+              title
+              entry {
+                ...menuEntry
+              }
             }
           }
-        }
-      }
-    }
-
-    releases: releasesJson {
-      type
-      versions {
-        title
-        menus {
-          title
-          subMenus {
-            title
-            entry {
-              ...menuEntry
-            }
+          fields {
+            path
           }
         }
       }

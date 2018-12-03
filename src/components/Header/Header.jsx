@@ -136,46 +136,31 @@ export default props => (
   <StaticQuery
     query={graphql`
       query IndexQuery1234 {
-        documentation: documentationJson {
-        type
-        versions {
-          version
-          title
-          menus {
-            title
-            subMenus {
-              title
-              entry {
-                ...menuEntry
+        sectionConfigs: allConfigJson {
+          edges {
+            node {
+              version
+              menus {
+                title
+                subMenus {
+                  title
+                  entry {
+                    ...menuEntry
+                  }
+                }
               }
             }
           }
         }
-      }
-
-      releases: releasesJson {
-        type
-        versions {
-          title
-          menus {
-            title
-            subMenus {
-              title
-              entry {
-                ...menuEntry
-              }
-            }
-          }
-        }
-      }
       }
     `}
     render={data => {
-      const activeLink = typeof window !== 'undefined' &&  window.location.pathname;
-      const documentation = getCategoriesMenu(data.documentation, activeLink);
-      const releases = getCategoriesMenu(data.releases, activeLink);
+      const activeLink = typeof window !== 'undefined' && window.location.pathname;
+      //const documentation = getCategoriesMenu(data.documentation, activeLink);
+      const releases = [];//getCategoriesMenu(data.releases, activeLink);
+      //console.log(documentation);
 
-      const menuLinks = [documentation, releases];
+      const menuLinks = []//[[], releases];
 
       return <Header menuLinks={menuLinks} activeLink={activeLink} {...props} />;
     }}

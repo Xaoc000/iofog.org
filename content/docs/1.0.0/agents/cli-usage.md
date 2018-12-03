@@ -5,6 +5,8 @@ type: "documentation"
 version: "1.0.0"
 ---
 
+[test](local-api.html)
+
 # Agent CLI Usage
 
 ```sh

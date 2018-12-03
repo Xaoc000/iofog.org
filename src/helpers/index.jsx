@@ -18,16 +18,10 @@ function formatSubMenu(items, path, activeLink) {
 }
 
 export default function getCategoriesMenu(params, activeLink) {
-  const { versions, type } = params;
+  const newVersions = params.edges.map(({ node }) => {
+    const path = `/${node.type}/${node.version}`;
 
-  const newVersions = versions.map(version => {
-    let path = `/${type}`;
-
-    if (version.version || version.version === "0.0.0") {
-      path = `/${type}/${version.version}`;
-    }
-
-    const newMenu = version.menus.map(menu => {
+    const newMenu = node.menus.map(menu => {
       const subMenus = formatSubMenu(menu.subMenus, path, activeLink);
 
       const menuItem = {
@@ -44,7 +38,7 @@ export default function getCategoriesMenu(params, activeLink) {
     });
 
     return {
-      label: version.title,
+      label: node.title,
       menus: newMenu,
       value: newMenu[0].path,
       isActive: some(newMenu, ["isActive", true])
@@ -55,7 +49,7 @@ export default function getCategoriesMenu(params, activeLink) {
   const activeVersion = newVersions.find(version => version.isActive);
 
   return {
-    title: type,
+    title: 'documentation',
     path: activeVersion ? activeVersion.menus[0].path : lastVersion.menus[0].path,
     versions: newVersions,
     menus: activeVersion ? activeVersion.menus : lastVersion.menus,
