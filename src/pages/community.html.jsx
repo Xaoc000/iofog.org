@@ -8,7 +8,7 @@ import Community from "../components/Community/Community";
 class CommunityPage extends Component {
   render() {
     return (
-      <Layout location="community">
+      <Layout location="community.html">
         <Helmet title={`Community | ${config.siteTitle}`} />
         <Community />
       </Layout>

@@ -65,7 +65,9 @@ function isActiveLink(activeLink, topLink) {
   return activeLink ? activeLink.match(`/${topLink.title}/`) : false;
 }
 
-const Header = ({ menuLinks, activeLink }) => (
+const pathForSubMenu = sub => sub.entry.childMarkdownRemark.fields.slug;
+
+const Header = ({ menuLinks, activeLink, docsConfig }) => (
   <header className="header">
     <div className="container">
       <div className="row">
@@ -91,15 +93,15 @@ const Header = ({ menuLinks, activeLink }) => (
                           {menu.title}
                         </Link>
                         {menu.subMenus &&
-                        <ul className={menu.isActive ? 'active sub-menu' : ' sub-menu'}>
-                          <button className="back">back</button>
-                          <li><strong>{menu.title}</strong></li>
-                          {menu.subMenus.map(subMenu => (
-                            <li key={subMenu.title}>
-                              <Link activeClassName="active" to={subMenu.path}>{subMenu.title}</Link>
-                            </li>
-                          ))}
-                        </ul>
+                          <ul className={menu.isActive ? 'active sub-menu' : ' sub-menu'}>
+                            <button className="back">back</button>
+                            <li><strong>{menu.title}</strong></li>
+                            {menu.subMenus.map(subMenu => (
+                              <li key={subMenu.title}>
+                                <Link activeClassName="active" to={subMenu.path}>{subMenu.title}</Link>
+                              </li>
+                            ))}
+                          </ul>
                         }
                       </li>
                     ))}
@@ -107,14 +109,53 @@ const Header = ({ menuLinks, activeLink }) => (
                 </li>
               ))}
               <li>
-                <Link activeClassName="active" to="/community">Community</Link>
+                <Link
+                  className={activeLink.startsWith('/docs/') ? 'active sub-menu__links' : 'sub-menu__links'}
+                  to="/docs/"
+                >
+                  Documentation
+                </Link>
+                <ul className={activeLink.startsWith('/docs/') ? 'active sub-menu' : 'sub-menu'}>
+                  <button className="back">back</button>
+                  <li><strong>Documentation</strong></li>
+                  {docsConfig.menus.map(menu => {
+                    const { isActive, subMenus } = menu.subMenus.reduce((acc, subMenu) => {
+                      const path = pathForSubMenu(subMenu);
+                      if (path === activeLink) {
+                        acc.isActive = true;
+                      }
+                      acc.subMenus.push(
+                        <li key={subMenu.title}>
+                          <Link activeClassName="active" to={path}>{subMenu.title}</Link>
+                        </li>
+                      );
+                      return acc;
+                    }, { isActive: false, subMenus: [] });
+
+                    return (
+                      <li key={menu.title} className={isActive ? 'active' : ''}>
+                        <Link className="sub-menu__links" to={pathForSubMenu(menu.subMenus[0])}>
+                          {menu.title}
+                        </Link>
+                        <ul className={isActive ? 'active sub-menu' : ' sub-menu'}>
+                          <button className="back">back</button>
+                          <li><strong>{menu.title}</strong></li>
+                          {subMenus}
+                        </ul>
+                      </li>
+                    );
+                  })}
+                </ul>
               </li>
               <li>
-                <Link activeClassName="active" to="/enterprise">Enterprise</Link>
+                <Link activeClassName="active" to="/community.html">Community</Link>
+              </li>
+              <li>
+                <Link activeClassName="active" to="/enterprise.html">Enterprise</Link>
               </li>
             </ul>
 
-            <Link to="/documentation/1.0.0/quick-start" className="start-guide">
+            <Link to="/docs/getting-started/quick-start.html" className="start-guide">
               <span>Quick Start Guide</span>
               <MdArrowForward />
             </Link>
@@ -136,7 +177,7 @@ export default props => (
   <StaticQuery
     query={graphql`
       query IndexQuery1234 {
-        sectionConfigs: allConfigJson {
+        allConfigJson {
           edges {
             node {
               version
@@ -149,6 +190,9 @@ export default props => (
                   }
                 }
               }
+              fields {
+                path
+              }
             }
           }
         }
@@ -156,13 +200,46 @@ export default props => (
     `}
     render={data => {
       const activeLink = typeof window !== 'undefined' && window.location.pathname;
-      //const documentation = getCategoriesMenu(data.documentation, activeLink);
-      const releases = [];//getCategoriesMenu(data.releases, activeLink);
-      //console.log(documentation);
+      console.log('data.allConfigJson', data.allConfigJson);
+      const menuLinks = [];
+      const allConfigEdges = data.allConfigJson.edges
+          .slice()
+          .sort((a, b) => b.node.version.localeCompare(a.node.version));
+      const docsConfigEdge = allConfigEdges.find(({ node }) => {
+        return activeLink.startsWith(node.fields.path);
+      });
+      let docsConfig;
+      // If no config is active, provide the latest.
+      if (docsConfigEdge) {
+        docsConfig = docsConfigEdge.node;
+      } else {
+        docsConfig = allConfigEdges[0].node;
+      }
 
-      const menuLinks = []//[[], releases];
+      /*
+      data.allConfigJson.edges.forEach(({ node }) => {
+        if (activeLink.startsWith(node.fields.path)) {
+          docsConfig = node;
+        }
 
-      return <Header menuLinks={menuLinks} activeLink={activeLink} {...props} />;
+        node.menus.forEach(menu => {
+          menu.subMenus.forEach(sub => {
+            const path = pathForSubMenu(sub);
+            sub.isActive = path === activeLink);
+            if (sub.isActive) {
+              menu.isActive = true;
+            }
+          });
+        });
+      });*/
+
+      console.log({ docsConfigEdge });
+      return <Header
+        menuLinks={menuLinks}
+        activeLink={activeLink}
+        docsConfig={docsConfig}
+        {...props}
+      />;
     }}
   />
 )

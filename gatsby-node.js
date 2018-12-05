@@ -91,7 +91,6 @@ const { createFilePath } = require('gatsby-source-filesystem')
 exports.onCreateNode = ({ node, actions, getNode }) => {
   const { createNodeField } = actions
   //console.log('node.internal.type', node.internal.type);
-  console.log(node);
   switch (node.internal.type) {
     case 'ConfigJson':
       const fileNode = getNode(node.parent)
@@ -133,7 +132,7 @@ exports.setFieldsOnGraphQLNodeType = ({ type, actions }) => {
 */
 
 exports.createPages = ({ graphql, actions }) => {
-  const { createPage } = actions;
+  const { createPage, createRedirect } = actions;
 
   return new Promise((resolve, reject) => {
     const docsPage = path.resolve("src/templates/post.jsx");
@@ -141,6 +140,25 @@ exports.createPages = ({ graphql, actions }) => {
       graphql(
         `
           {
+            allConfigJson {
+              edges {
+                node {
+                  version,
+                  menus {
+                    subMenus {
+                      entry {
+                        relativePath,
+                        absolutePath
+                      }
+                    }
+                  }
+                  fields {
+                    path
+                  }
+                }
+              }
+            }
+
             allMarkdownRemark{
               edges {
                 node {
@@ -168,6 +186,17 @@ exports.createPages = ({ graphql, actions }) => {
           reject(result.errors);
         }
 
+        // We want to find the first docs file in the latest version so that we
+        // can have /docs redirect to it
+        const configs = result.data.allConfigJson.edges
+          .slice()
+          .sort((a, b) => b.node.version.localeCompare(a.node.version));
+        const latestConfig = configs[0].node;
+        const latestVersionBasePath = latestConfig.fields.path;
+        const latestDocsStartFile = latestConfig.menus[0].subMenus[0].entry.absolutePath;
+        let foundLatestDocsStartFile = false;
+        let latestReleaseVersion;
+
         result.data.allMarkdownRemark.edges.forEach(edge => {
           const { slug } = edge.node.fields;
           //const parts = path.parse(edge.node.fileAbsolutePath);
@@ -181,6 +210,48 @@ exports.createPages = ({ graphql, actions }) => {
             }
           };
           createPage(obj);
+
+          if (slug.startsWith(latestVersionBasePath)) {
+            console.log('fromPath', `/docs/${slug.slice(latestVersionBasePath.length)}`);
+            createRedirect({
+              fromPath: `/docs/${slug.slice(latestVersionBasePath.length)}`,
+              isPermanent: true,
+              redirectInBrowser: true,
+              toPath: slug,
+            });
+          }
+
+          // The latest version changes, so we want to do this dynamically for
+          // each build
+          if (edge.node.fileAbsolutePath === latestDocsStartFile) {
+            if (foundLatestDocsStartFile) throw new Error(`latestDocsStartFile was already found ${latestDocsStartFile}`);
+            foundLatestDocsStartFile = true;
+
+            createRedirect({
+              fromPath: '/docs/',
+              isPermanent: true,
+              redirectInBrowser: true,
+              toPath: slug,
+            });
+          }
+
+          if (slug.startsWith('/releases/')) {
+            const match = slug.match(/^\/releases\/([^/]+)\.html$/);
+            const version = match[1];
+            if (!latestReleaseVersion || latestReleaseVersion.localeCompare(version) === 1) {
+              latestReleaseVersion = version;
+            }
+          }
+        });
+
+        if (!foundLatestDocsStartFile) throw new Error(`no redirect for /docs setup, didn't find ${latestDocsStartFile}`);
+        if (!latestReleaseVersion) throw new Error('No release found as the latest');
+
+        createRedirect({
+          fromPath: '/releases/',
+          isPermanent: true,
+          redirectInBrowser: true,
+          toPath: `/releases/${latestReleaseVersion}.html`,
         });
       })
     );

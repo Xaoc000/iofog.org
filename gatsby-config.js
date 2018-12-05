@@ -33,7 +33,7 @@ module.exports = {
       options: {
         name: "content",
         path: `${__dirname}/content`,
-        ignore: ["**/_third_party/*"]
+        ignore: ["**/_third_party/*", `${__dirname}/content/docs/next`]
       }
     },
     {
@@ -128,8 +128,6 @@ module.exports = {
         ]
       }
     },
-    "gatsby-plugin-offline",
-    "gatsby-redirect-from",
-    "gatsby-plugin-meta-redirect"
+    "gatsby-plugin-offline"
   ]
 };
